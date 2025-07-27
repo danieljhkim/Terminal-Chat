@@ -22,7 +22,7 @@ build: build-server build-cli
 # Build chat-server
 build-server:
 	cd chat-server && \
-	$(GOBUILD) -o bin/$(SERVER_BINARY) .
+	$(GOBUILD) -o bin/$(SERVER_BINARY) ./cmd/server
 
 # Build chat-cli
 build-cli:
