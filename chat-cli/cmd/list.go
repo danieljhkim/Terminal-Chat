@@ -1,40 +1,144 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net"
+	"strings"
 
+	"github.com/danieljhkim/chat-cli/internal/config"
+	"github.com/danieljhkim/chat-cli/internal/protocol"
 	"github.com/spf13/cobra"
 )
 
-// listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+// roomsListCmd represents the list command
+var roomsListCmd = &cobra.Command{
+	Use:     "list",
+	Short:   "List available chat rooms",
+	Long:    "Display all available chat rooms on the server.",
+	Example: "chat-cli rooms list",
+	RunE:    runListCommand,
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("list called")
-	},
+// runListCommand handles the main logic for listing rooms
+func runListCommand(cmd *cobra.Command, args []string) error {
+	cfg, err := config.Get()
+	if err != nil {
+		return err
+	}
+
+	rooms, err := fetchRoomsList(cfg)
+	if err != nil {
+		return err
+	}
+
+	displayRooms(rooms)
+	return nil
+}
+
+// fetchRoomsList connects to server and retrieves rooms list
+func fetchRoomsList(cfg *config.Config) ([]string, error) {
+	conn, err := establishConnection(cfg.ServerAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to server: %w", err)
+	}
+	defer conn.Close()
+
+	enc := json.NewEncoder(conn)
+	dec := json.NewDecoder(conn)
+
+	if err := sendListRequest(enc, cfg.Username); err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+
+	rooms, err := receiveRoomsResponse(dec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to receive response: %w", err)
+	}
+
+	return rooms, nil
+}
+
+// establishConnection creates a TCP connection to the server
+func establishConnection(serverAddress string) (net.Conn, error) {
+	conn, err := net.Dial("tcp", serverAddress)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to %s: %w", serverAddress, err)
+	}
+	return conn, nil
+}
+
+// sendListRequest sends the list rooms request to the server
+func sendListRequest(enc *json.Encoder, username string) error {
+	req := protocol.WireMessage{
+		Type:     protocol.TypeListRooms,
+		Username: username,
+	}
+	return enc.Encode(req)
+}
+
+// receiveRoomsResponse receives and validates the server response
+func receiveRoomsResponse(dec *json.Decoder) ([]string, error) {
+	var resp protocol.WireMessage
+	if err := dec.Decode(&resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if err := validateResponse(&resp); err != nil {
+		return nil, err
+	}
+
+	return parseRooms(resp.Message), nil
+}
+
+// validateResponse validates the server response
+func validateResponse(resp *protocol.WireMessage) error {
+	switch resp.Type {
+	case protocol.TypeRoomsList:
+		return nil
+	case protocol.TypeError:
+		return fmt.Errorf("server error: %s", resp.Message)
+	default:
+		return fmt.Errorf("unexpected response type: %s", resp.Type)
+	}
+}
+
+// parseRooms extracts room names from the response message
+func parseRooms(message string) []string {
+	if message == "" {
+		return []string{}
+	}
+
+	// Assuming rooms are separated by newlines or commas
+	rooms := strings.Split(message, "\n")
+	var validRooms []string
+
+	for _, room := range rooms {
+		room = strings.TrimSpace(room)
+		if room != "" {
+			validRooms = append(validRooms, room)
+		}
+	}
+
+	return validRooms
+}
+
+// displayRooms formats and displays the rooms list
+func displayRooms(rooms []string) {
+	if len(rooms) == 0 {
+		fmt.Println("No rooms available.")
+		return
+	}
+
+	fmt.Println("Available rooms:")
+	for i, room := range rooms {
+		fmt.Printf("  %d. %s\n", i+1, room)
+	}
+	fmt.Printf("\nTotal: %d room(s)\n", len(rooms))
 }
 
 func init() {
-	roomsCmd.AddCommand(listCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Register the list command with the parent rooms command
+	// This would be called from the parent package
+	roomsCmd.AddCommand(roomsListCmd)
 }

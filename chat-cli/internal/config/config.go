@@ -1,46 +1,119 @@
-package internal
+package config
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
+)
+
+const (
+	ConfigDir  = ".chat-cli"
+	ConfigFile = "config.yaml"
+)
+
+var (
+	globalConfig *Config
+	once         sync.Once
+	loadErr      error
 )
 
 type Config struct {
-	ServerAddress string `mapstructure:"server_address"`
-	Username      string `mapstructure:"username"`
+	ServerAddress string `yaml:"server_address"`
+	Username      string `yaml:"username"`
 }
 
-var Cfg Config
+func (c *Config) Validate() error {
+	if strings.TrimSpace(c.ServerAddress) == "" {
+		return fmt.Errorf("server address cannot be empty")
+	}
+	if strings.TrimSpace(c.Username) == "" {
+		return fmt.Errorf("username cannot be empty")
+	}
+	return nil
+}
 
-func LoadConfig(configName string) error {
-	viper.SetConfigName(configName)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".") 
-	viper.AddConfigPath("./config")
+func GetConfigPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return filepath.Join(homeDir, ConfigDir, ConfigFile), nil
+}
 
-	// Environment variable override
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Println("No config file found, using defaults or env vars")
-		} else {
-			return err
-		}
+func Save(cfg *Config, path string) error {
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("config validation failed: %w", err)
 	}
 
-	if err := viper.Unmarshal(&Cfg); err != nil {
-		return err
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create config file: %w", err)
+	}
+	defer file.Close()
+
+	encoder := yaml.NewEncoder(file)
+	defer encoder.Close()
+
+	if err := encoder.Encode(cfg); err != nil {
+		return fmt.Errorf("failed to encode config: %w", err)
 	}
 
 	return nil
 }
 
-func Init() {
-	if err := LoadConfig("config"); err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+func Load() (*Config, error) {
+	path, err := GetConfigPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config path: %w", err)
 	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file: %w", err)
+	}
+	defer file.Close()
+
+	var cfg Config
+	decoder := yaml.NewDecoder(file)
+	if err := decoder.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to decode config: %w", err)
+	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
+	return &cfg, nil
+}
+
+func Get() (*Config, error) {
+	once.Do(func() {
+		globalConfig, loadErr = Load()
+	})
+	return globalConfig, loadErr
+}
+
+func Set(cfg *Config) error {
+	path, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+	if err := Save(cfg, path); err != nil {
+		return err
+	}
+	globalConfig = cfg
+	return nil
+}
+
+func Reset() {
+	once = sync.Once{}
+	globalConfig = nil
+	loadErr = nil
 }

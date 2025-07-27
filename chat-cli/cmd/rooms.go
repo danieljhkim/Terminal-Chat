@@ -1,40 +1,28 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2025 Daniel Kim
 */
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-// roomsCmd represents the rooms command
 var roomsCmd = &cobra.Command{
 	Use:   "rooms",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Manage chat rooms",
+	Long: `Manage chat rooms including listing available rooms, joining rooms, 
+and leaving rooms. Use subcommands to perform specific room operations.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Available subcommands:
+  list  - List all available chat rooms
+  join  - Join a specific chat room`,
+	Example: `  chat-cli rooms list
+  chat-cli rooms join general`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("rooms called")
+		cmd.Help()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(roomsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// roomsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// roomsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

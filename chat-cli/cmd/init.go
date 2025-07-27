@@ -4,66 +4,71 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 
+	"github.com/danieljhkim/chat-cli/internal/config"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
-type InitConfig struct {
-	ServerAddress string `yaml:"server_address"`
-	Username      string `yaml:"username"`
-}
-
-var initCmd = &cobra.Command{
+var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Configure the chat CLI",
-	Run: func(cmd *cobra.Command, args []string) {
-		reader := bufio.NewReader(os.Stdin)
+	Long:  "Initialize the chat CLI by setting up server address and username configuration.",
+	RunE:  runInit,
+}
 
-		fmt.Print("Enter server address (e.g. localhost:9000): ")
-		serverAddr, _ := reader.ReadString('\n')
-		serverAddr = sanitizeInput(serverAddr)
+func runInit(cmd *cobra.Command, args []string) error {
+	return PromptInitAndSave()
+}
 
-		fmt.Print("Enter username: ")
-		username, _ := reader.ReadString('\n')
-		username = sanitizeInput(username)
+func PromptInitAndSave() error {
+	cfg, err := promptForConfig()
+	if err != nil {
+		return fmt.Errorf("failed to collect configuration: %w", err)
+	}
 
-		cfg := InitConfig{
-			ServerAddress: serverAddr,
-			Username:      username,
-		}
+	configPath, err := config.GetConfigPath()
+	if err != nil {
+		return fmt.Errorf("failed to determine config path: %w", err)
+	}
 
-		savePath := filepath.Join(os.Getenv("HOME"), ".chat-cli", "config.yaml")
-		if err := saveConfig(cfg, savePath); err != nil {
-			fmt.Printf("Error saving config: %v\n", err)
-			os.Exit(1)
-		}
+	if err := config.Save(cfg, configPath); err != nil {
+		return fmt.Errorf("failed to save configuration: %w", err)
+	}
 
-		fmt.Printf("✅ Config saved to %s\n", savePath)
-	},
+	fmt.Printf("✅ Configuration saved to %s\n", configPath)
+	return nil
+}
+
+func promptForConfig() (*config.Config, error) {
+	reader := bufio.NewReader(os.Stdin)
+	serverAddr, err := promptInput(reader, "Enter server address (e.g. localhost:9000): ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read server address: %w", err)
+	}
+	username, err := promptInput(reader, "Enter username: ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read username: %w", err)
+	}
+	return &config.Config{
+		ServerAddress: serverAddr,
+		Username:      username,
+	}, nil
+}
+
+func promptInput(reader *bufio.Reader, prompt string) (string, error) {
+	fmt.Print(prompt)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return sanitizeInput(input), nil
 }
 
 func sanitizeInput(input string) string {
-	return string([]byte(input)[:len(input)-1]) // strip newline
-}
-
-func saveConfig(cfg InitConfig, path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
-		return err
-	}
-
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := yaml.NewEncoder(file)
-	defer encoder.Close()
-	return encoder.Encode(cfg)
+	return strings.TrimSpace(input)
 }
 
 func init() {
-	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(InitCmd)
 }

@@ -89,7 +89,10 @@ func (h *Hub) dispatch(env envelope) {
 
 	case protocol.TypeEcho:
 		c.Send(msg) // simple echo
-
+	
+	case protocol.TypeListRooms:
+		h.handleListRooms(c)
+	
 	default:
 		h.log.Warn("unknown msg type", "type", msg.Type)
 	}
@@ -106,13 +109,14 @@ func (h *Hub) handleJoin(c *Client, msg protocol.WireMessage) {
 		Type: protocol.TypeRoomMsg,
 		Room: room.Name,
 		Body: fmt.Sprintf("%s joined the room.", msg.Username),
+		Username: "Admin",
 	}
 	room.Broadcast(notice, nil)
 }
 
-func (h *Hub) handleRoomMsg(c *Client, msg protocol.WireMessage) {
+func (h *Hub) handleRoomMsg(_ *Client, msg protocol.WireMessage) {
 	if msg.Room == "" {
-		return
+		msg.Room = "general" // default room if not specified
 	}
 	if room, ok := h.Rooms[msg.Room]; ok {
 		// let sender’s Username go through unchanged
@@ -130,4 +134,17 @@ func (h *Hub) handleDM(_ *Client, msg protocol.WireMessage) {
 			return
 		}
 	}
+}
+
+func (h *Hub) handleListRooms(c *Client) {
+	names := make([]string, 0, len(h.Rooms))
+	for name := range h.Rooms {
+		names = append(names, name)
+	}
+
+	resp := protocol.WireMessage{
+		Type:  protocol.TypeRoomsList,
+		Rooms: names,
+	}
+	c.Send(resp)
 }
