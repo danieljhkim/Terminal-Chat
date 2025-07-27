@@ -1,0 +1,6 @@
+listen_address: ":9000"
+transport: "tcp"
+max_message_bytes: 4096
+log_level: "debug"
+write_timeout: 5s
+read_timeout: 30s
