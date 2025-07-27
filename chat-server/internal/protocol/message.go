@@ -2,13 +2,13 @@ package protocol
 
 // Message kinds.
 const (
-	TypeJoin       = "join"
-	TypeLeave      = "leave"
-	TypeRoomMsg    = "room_msg"
-	TypeDM         = "dm"
-	TypeListRooms  = "list_rooms"  // NEW  – request
-	TypeRoomsList  = "rooms_list"  // NEW  – response
-	TypeEcho       = "echo"
+	TypeJoin      = "join"
+	TypeLeave     = "leave"
+	TypeRoomMsg   = "room_msg"
+	TypeDM        = "dm"
+	TypeListRooms = "list_rooms"  //request
+	TypeRoomsList = "rooms_list"  //response
+	TypeEcho      = "echo"
 )
 
 // WireMessage represents every payload on the wire.
