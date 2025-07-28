@@ -60,7 +60,18 @@ chat-cli init
 chat-cli rooms join room_name
 ```
 
+## TODO's
+- [ ] Add support for direct messages
+- [ ] Implement user authentication & TLS
+- [ ] Implement friend system
+- [ ] Implement rate limiting
+- [ ] Add input sanitation to prevent terminal injection attacks
+
+
 ## Acknowledgments
 - Built with Cobra for CLI framework
 - Uses Viper for configuration management
 - Github Copilot
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
