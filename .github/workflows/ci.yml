@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-build:
+    strategy:
+      matrix:
+        go-version: [1.22.x, 1.21.x, 1.20.x]  # keep 3-wide matrix current
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ${{ env.GOMODCACHE }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Run vet & tests
+        run: |
+          go vet ./...
+          go test -v ./...
+
+      - name: Build chat-cli
+        run: go build -o bin/chat-cli ./chat-cli
+
+      - name: Build chat-server
+        run: go build -o bin/chat-server ./chat-server
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.go-version }}
+          path: bin/
