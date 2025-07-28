@@ -69,10 +69,16 @@ func Save(cfg *Config, path string) error {
 	return nil
 }
 
-func Load() (*Config, error) {
-	path, err := GetConfigPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config path: %w", err)
+func Load(parts ...string) (*Config, error) {
+	path := ""
+	if len(parts) == 0 {
+		defaultPath, err := GetConfigPath()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get config path: %w", err)
+		}
+		path = defaultPath
+	} else {
+		path = parts[0]
 	}
 
 	file, err := os.Open(path)
@@ -93,17 +99,33 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
-func Get() (*Config, error) {
+func Get(parts ...string) (*Config, error) {
+	path := ""
+	if len(parts) == 0 {
+		defaultPath, err := GetConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		path = defaultPath
+	} else {
+		path = parts[0]
+	}
 	once.Do(func() {
-		globalConfig, loadErr = Load()
+		globalConfig, loadErr = Load(path)
 	})
 	return globalConfig, loadErr
 }
 
-func Set(cfg *Config) error {
-	path, err := GetConfigPath()
-	if err != nil {
-		return err
+func Set(cfg *Config, parts ...string) error {
+	path := ""
+	if len(parts) == 0 {
+		defaultPath, err := GetConfigPath()
+		if err != nil {
+			return err
+		}
+		path = defaultPath
+	} else {
+		path = parts[0]
 	}
 	if err := Save(cfg, path); err != nil {
 		return err

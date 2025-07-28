@@ -24,7 +24,7 @@ var roomsJoinCmd = &cobra.Command{
     Use:     "join <room-name>",
     Short:   "Join a chat room",
     Long:    `Join a chat room and start participating in real-time conversations.`,
-    Args:    cobra.ExactArgs(1),
+    Args:    cobra.MinimumNArgs(1),
     Example: "chat-cli rooms join general",
     RunE:    runJoinCommand,
 }
@@ -45,7 +45,16 @@ type chatSession struct {
 // runJoinCommand handles the main logic for joining a room
 func runJoinCommand(cmd *cobra.Command, args []string) error {
     roomName := args[0]
-
+    userName := ""
+    if len(args) == 2 {
+        userName = args[1]
+    } else {
+        cfg, err := config.Get()
+        if err != nil {
+            return fmt.Errorf("failed to load configuration: %w", err)
+        }
+        userName = cfg.Username
+    }
     // Establish connection and join room
     conn, enc, dec, err := connectAndJoinRoom(roomName)
     if err != nil {
@@ -53,21 +62,15 @@ func runJoinCommand(cmd *cobra.Command, args []string) error {
     }
     defer conn.Close()
 
-    cfg, err := config.Get()
-    if err != nil {
-        return fmt.Errorf("failed to load configuration: %w", err)
-    }
-
     session := &chatSession{
         roomName:       roomName,
-        username:       cfg.Username,
+        username:       userName,
         conn:           conn,
         enc:            enc,
         dec:            dec,
         startTime:      time.Now(),
         showTimestamps: false,
     }
-
     printWelcome(session)
     return startAdvancedChatSession(session)
 }
@@ -115,20 +118,20 @@ func connectAndJoinRoom(roomName string) (net.Conn, *json.Encoder, *json.Decoder
 func printWelcome(session *chatSession) {
     clearScreen()
     fmt.Println("╔══════════════════════════════════════════════════════════╗")
-    fmt.Printf("║                    🚀 CHAT CLI v1.0.0                    ║\n")
+    fmt.Printf("║                 🚀 Terminal Chat v1.0.0                  ║\n")
     fmt.Println("║══════════════════════════════════════════════════════════║")
-    fmt.Printf("║ Room: %-47s║\n", session.roomName)
-    fmt.Printf("║ User: %-47s║\n", session.username)
-    fmt.Printf("║ Connected: %-42s║\n", session.startTime.Format("2006-01-02 15:04:05"))
+    fmt.Printf("║ Room: %-51s║\n", session.roomName)
+    fmt.Printf("║ User: %-51s║\n", session.username)
+    fmt.Printf("║ Connected: %-46s║\n", session.startTime.Format("2006-01-02 15:04:05"))
     fmt.Println("║══════════════════════════════════════════════════════════║")
     fmt.Println("║                       COMMANDS                           ║")
-    fmt.Println("║ /help      - Show this help                             ║")
-    fmt.Println("║ /users     - List users in room                         ║")
-    fmt.Println("║ /stats     - Show session statistics                    ║")
-    fmt.Println("║ /time      - Toggle timestamps                          ║")
-    fmt.Println("║ /clear     - Clear screen                               ║")
-    fmt.Println("║ /quit      - Exit chat                                  ║")
-    fmt.Println("║ Ctrl+C     - Exit gracefully                            ║")
+    fmt.Println("║ /help      - Show this help                              ║")
+    fmt.Println("║ /users     - List users in room                          ║")
+    fmt.Println("║ /stats     - Show session statistics                     ║")
+    fmt.Println("║ /time      - Toggle timestamps                           ║")
+    fmt.Println("║ /clear     - Clear screen                                ║")
+    fmt.Println("║ /quit      - Exit chat                                   ║")
+    fmt.Println("║ Ctrl+C     - Exit gracefully                             ║")
     fmt.Println("╚══════════════════════════════════════════════════════════╝")
     fmt.Println()
     fmt.Printf("💬 Welcome to %s! Start typing to chat...\n", session.roomName)
@@ -180,20 +183,16 @@ func handleAdvancedIncomingMessages(ctx context.Context, session *chatSession, e
                 errChan <- fmt.Errorf("error reading message: %w", err)
                 return
             }
-
             session.messageCount++
-            
             switch msg.Type {
             case protocol.TypeRoomMsg:
                 displayChatMessage(session, &msg)
             case protocol.TypeUserJoined:
                 fmt.Printf("🟢 %s joined the room\n", msg.Username)
-                session.userCount++
             case protocol.TypeUserLeft:
                 fmt.Printf("🔴 %s left the room\n", msg.Username)
-                session.userCount--
             case protocol.TypeUserList:
-                displayUserList(msg.Message)
+                displayUserList(msg.Users)
             case protocol.TypeError:
                 fmt.Printf("❌ Server error: %s\n", msg.Message)
             default:
@@ -212,23 +211,22 @@ func displayChatMessage(session *chatSession, msg *protocol.WireMessage) {
 
     // Highlight own messages
     if msg.Username == session.username {
-        fmt.Printf("%s\033[36m[You]\033[0m: %s\n", timestamp, msg.Body)
+        // fmt.Printf("%s\033[36m[You]\033[0m: %s\n", timestamp, msg.Body)
     } else {
         fmt.Printf("%s\033[33m[%s]\033[0m: %s\n", timestamp, msg.Username, msg.Body)
     }
 }
 
 // displayUserList shows the list of users in the room
-func displayUserList(userListStr string) {
-    users := strings.Split(userListStr, ",")
+func displayUserList(userList []string) {
     fmt.Println("👥 Users in room:")
-    for i, user := range users {
+    for i, user := range userList {
         user = strings.TrimSpace(user)
         if user != "" {
             fmt.Printf("   %d. %s\n", i+1, user)
         }
     }
-    fmt.Printf("Total: %d user(s)\n", len(users))
+    fmt.Printf("Total: %d user(s)\n", len(userList))
 }
 
 // handleAdvancedUserInput processes user input with command support
@@ -240,7 +238,6 @@ func handleAdvancedUserInput(ctx context.Context, session *chatSession, errChan 
         case <-ctx.Done():
             return
         default:
-            fmt.Print("💬 ")
             if !scanner.Scan() {
                 if err := scanner.Err(); err != nil {
                     errChan <- fmt.Errorf("error reading input: %w", err)
@@ -252,7 +249,6 @@ func handleAdvancedUserInput(ctx context.Context, session *chatSession, errChan 
             if input == "" {
                 continue
             }
-
             // Handle commands
             if strings.HasPrefix(input, "/") {
                 if err := handleChatCommand(input, session); err != nil {
@@ -260,7 +256,7 @@ func handleAdvancedUserInput(ctx context.Context, session *chatSession, errChan 
                 }
                 continue
             }
-
+            
             // Send regular message
             if err := sendChatMessage(input, session); err != nil {
                 errChan <- fmt.Errorf("error sending message: %w", err)
@@ -284,6 +280,7 @@ func handleChatCommand(input string, session *chatSession) error {
         printHelp()
     case "/quit", "/exit":
         fmt.Println("👋 Goodbye!")
+        sendLeaveMessage(session)
         os.Exit(0)
     case "/clear":
         clearScreen()
@@ -333,8 +330,8 @@ func printStats(session *chatSession) {
     fmt.Printf("   Room: %s\n", session.roomName)
     fmt.Printf("   Connected for: %v\n", duration.Round(time.Second))
     fmt.Printf("   Messages received: %d\n", session.messageCount)
-    fmt.Printf("   Users in room: %d\n", session.userCount)
     fmt.Printf("   Started: %s\n", session.startTime.Format("2006-01-02 15:04:05"))
+    requestUserList(session)
 }
 
 // clearScreen clears the terminal screen

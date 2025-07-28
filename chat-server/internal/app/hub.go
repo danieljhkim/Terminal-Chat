@@ -93,6 +93,9 @@ func (h *Hub) dispatch(env envelope) {
 	case protocol.TypeListRooms:
 		h.handleListRooms(c)
 
+	case protocol.TypeListUsers:
+		h.handleListUsers(c, msg)
+
 	default:
 		h.log.Warn("unknown msg type", "type", msg.Type)
 	}
@@ -104,12 +107,11 @@ func (h *Hub) handleJoin(c *Client, msg protocol.WireMessage) {
 	}
 	room := h.getOrCreateRoom(msg.Room)
 	room.Add(c)
-
 	notice := protocol.WireMessage{
-		Type:     protocol.TypeRoomMsg,
+		Type:     protocol.TypeUserJoined,
 		Room:     room.Name,
 		Body:     fmt.Sprintf("%s joined the room.", msg.Username),
-		Username: "Admin",
+		Username: msg.Username,
 	}
 	room.Broadcast(notice, nil)
 }
@@ -145,6 +147,19 @@ func (h *Hub) handleListRooms(c *Client) {
 	resp := protocol.WireMessage{
 		Type:  protocol.TypeRoomsList,
 		Rooms: names,
+	}
+	c.Send(resp)
+}
+
+func (h *Hub) handleListUsers(c *Client, msg protocol.WireMessage) {
+	room := msg.Room
+	names := make([]string, 0, len(h.Rooms[room].Members))
+	for cl := range h.Rooms[room].Members {
+		names = append(names, cl.Username)
+	}
+	resp := protocol.WireMessage{
+		Type:  protocol.TypeUserList,
+		Users: names,
 	}
 	c.Send(resp)
 }

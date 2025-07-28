@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/danieljhkim/chat-cli/internal/config"
 	"github.com/danieljhkim/chat-cli/internal/protocol"
@@ -88,7 +87,7 @@ func receiveRoomsResponse(dec *json.Decoder) ([]string, error) {
 		return nil, err
 	}
 
-	return parseRooms(resp.Message), nil
+	return resp.Rooms, nil
 }
 
 // validateResponse validates the server response
@@ -101,26 +100,6 @@ func validateResponse(resp *protocol.WireMessage) error {
 	default:
 		return fmt.Errorf("unexpected response type: %s", resp.Type)
 	}
-}
-
-// parseRooms extracts room names from the response message
-func parseRooms(message string) []string {
-	if message == "" {
-		return []string{}
-	}
-
-	// Assuming rooms are separated by newlines or commas
-	rooms := strings.Split(message, "\n")
-	var validRooms []string
-
-	for _, room := range rooms {
-		room = strings.TrimSpace(room)
-		if room != "" {
-			validRooms = append(validRooms, room)
-		}
-	}
-
-	return validRooms
 }
 
 // displayRooms formats and displays the rooms list

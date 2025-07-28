@@ -18,10 +18,10 @@ var InitCmd = &cobra.Command{
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
-	return PromptInitAndSave()
+	return PromptInitAndSave(args...)
 }
 
-func PromptInitAndSave() error {
+func PromptInitAndSave(args ...string) error {
 	cfg, err := promptForConfig()
 	if err != nil {
 		return fmt.Errorf("failed to collect configuration: %w", err)
