@@ -118,7 +118,7 @@ func connectAndJoinRoom(roomName string) (net.Conn, *json.Encoder, *json.Decoder
 func printWelcome(session *chatSession) {
     clearScreen()
     fmt.Println("╔══════════════════════════════════════════════════════════╗")
-    fmt.Printf("║                 🚀 Terminal Chat v1.0.0                  ║\n")
+    fmt.Printf("║                 🤖 Terminal Chat v1.0.0                  ║\n")
     fmt.Println("║══════════════════════════════════════════════════════════║")
     fmt.Printf("║ Room: %-51s║\n", session.roomName)
     fmt.Printf("║ User: %-51s║\n", session.username)

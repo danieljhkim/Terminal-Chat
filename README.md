@@ -13,7 +13,7 @@ A simple command-line chat application built with Go, consisting of a chat serve
 
 #### Commands
 
-- `chat-cli init`:	Initialize configuration file
+- `chat-cli init`:	Initialize configuration file (username and server address)
 - `chat-cli -h`:	Show help information
 - `chat-cli rooms list`:	List all available rooms
 - `chat-cli rooms join <room>`:	Join or create a specific room
@@ -26,8 +26,8 @@ A simple command-line chat application built with Go, consisting of a chat serve
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/danieljhkim/terminal-chat.git
-cd terminal-chat
+git clone https://github.com/danieljhkim/Terminal-Chat.git
+cd Terminal-Chat
 ```
 
 2. Build the project:
@@ -57,7 +57,7 @@ make run-server
 chat-cli init
 
 # join/create a chat room
-chat-cli rooms join newRoom
+chat-cli rooms join room_name
 ```
 
 ## Acknowledgments
