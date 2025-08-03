@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/danieljhkim/chat-server/internal/protocol"
+	"github.com/danieljhkim/chat-server/internal/security"
 )
 
 type envelope struct {
@@ -122,6 +123,7 @@ func (h *Hub) handleRoomMsg(_ *Client, msg protocol.WireMessage) {
 	}
 	if room, ok := h.Rooms[msg.Room]; ok {
 		// let sender’s Username go through unchanged
+		msg.Body = security.SanitizeInput(msg.Body)
 		room.Broadcast(msg, nil)
 	}
 }
@@ -132,6 +134,7 @@ func (h *Hub) handleDM(_ *Client, msg protocol.WireMessage) {
 	}
 	for cl := range h.Clients {
 		if cl.Username == msg.Target {
+			msg.Body = security.SanitizeInput(msg.Body)
 			cl.Send(msg)
 			return
 		}
