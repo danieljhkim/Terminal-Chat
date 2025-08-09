@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/danieljhkim/chat-cli/internal/config"
+	cnet "github.com/danieljhkim/chat-cli/internal/net"
 	"github.com/danieljhkim/chat-cli/internal/protocol"
 	"github.com/spf13/cobra"
 )
@@ -81,7 +82,7 @@ func connectAndJoinRoom(roomName string) (net.Conn, *json.Encoder, *json.Decoder
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
-	conn, err := net.Dial("tcp", cfg.ServerAddress)
+	conn, err := cnet.Connect(cfg.ServerAddress)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to connect to server: %w", err)
 	}

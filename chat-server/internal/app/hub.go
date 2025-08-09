@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/danieljhkim/chat-server/internal/chatstore"
 	"github.com/danieljhkim/chat-server/internal/protocol"
 	"github.com/danieljhkim/chat-server/internal/security"
 )
@@ -24,6 +25,7 @@ type Hub struct {
 	log *slog.Logger
 }
 
+
 func NewHub(log *slog.Logger) *Hub {
 	return &Hub{
 		Rooms:      make(map[string]*Room),
@@ -33,6 +35,9 @@ func NewHub(log *slog.Logger) *Hub {
 		Inbound:    make(chan envelope, 1024),
 		log:        log.With("component", "hub"),
 	}
+}
+
+func init() {
 }
 
 func (h *Hub) Run(ctx context.Context) {
@@ -85,7 +90,7 @@ func (h *Hub) dispatch(env envelope) {
 	case protocol.TypeRoomMsg:
 		h.handleRoomMsg(c, msg)
 
-	case protocol.TypeDM:
+	case protocol.TypeSendDM:
 		h.handleDM(c, msg)
 
 	case protocol.TypeEcho:
@@ -97,6 +102,8 @@ func (h *Hub) dispatch(env envelope) {
 	case protocol.TypeListUsers:
 		h.handleListUsers(c, msg)
 
+	case protocol.TypeListDM:
+		h.handleListDM(c, msg)
 	default:
 		h.log.Warn("unknown msg type", "type", msg.Type)
 	}
@@ -135,7 +142,14 @@ func (h *Hub) handleDM(_ *Client, msg protocol.WireMessage) {
 	for cl := range h.Clients {
 		if cl.Username == msg.Target {
 			msg.Body = security.SanitizeInput(msg.Body)
-			cl.Send(msg)
+			store := chatstore.GetDMStore()
+			store.AddMessage(chatstore.DM{
+				Sender:    msg.Username,
+				Recipient: msg.Target,
+				Body:      msg.Body,
+				Timestamp: msg.Timestamp,
+				Read:      false,
+			})
 			return
 		}
 	}
@@ -150,6 +164,17 @@ func (h *Hub) handleListRooms(c *Client) {
 	resp := protocol.WireMessage{
 		Type:  protocol.TypeRoomsList,
 		Rooms: names,
+	}
+	c.Send(resp)
+}
+
+func (h *Hub) handleListDM(c *Client, msg protocol.WireMessage) {
+	store := chatstore.GetDMStore()
+	dms := store.GetMessages(msg.Username)
+
+	resp := protocol.WireMessage{
+		Type:  protocol.TypeDMList,
+		DMs: dms,
 	}
 	c.Send(resp)
 }

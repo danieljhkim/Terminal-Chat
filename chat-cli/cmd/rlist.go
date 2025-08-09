@@ -3,9 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 
 	"github.com/danieljhkim/chat-cli/internal/config"
+	"github.com/danieljhkim/chat-cli/internal/net"
 	"github.com/danieljhkim/chat-cli/internal/protocol"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +37,7 @@ func runListCommand(cmd *cobra.Command, args []string) error {
 
 // fetchRoomsList connects to server and retrieves rooms list
 func fetchRoomsList(cfg *config.Config) ([]string, error) {
-	conn, err := establishConnection(cfg.ServerAddress)
+	conn, err := net.Connect(cfg.ServerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to server: %w", err)
 	}
@@ -56,15 +56,6 @@ func fetchRoomsList(cfg *config.Config) ([]string, error) {
 	}
 
 	return rooms, nil
-}
-
-// establishConnection creates a TCP connection to the server
-func establishConnection(serverAddress string) (net.Conn, error) {
-	conn, err := net.Dial("tcp", serverAddress)
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to %s: %w", serverAddress, err)
-	}
-	return conn, nil
 }
 
 // sendListRequest sends the list rooms request to the server

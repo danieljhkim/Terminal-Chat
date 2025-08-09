@@ -15,6 +15,9 @@ const (
 
 	// Direct messaging
 	TypeDM = "dm"
+	TypeListDM = "list_dm" // request
+	TypeDMList = "dm_list" // response
+	TypeSendDM = "send_dm"
 
 	// Room listing
 	TypeListRooms = "list_rooms" // request
@@ -60,6 +63,7 @@ type WireMessage struct {
 	// List responses
 	Rooms []string `json:"rooms,omitempty"` // room list response
 	Users []string `json:"users,omitempty"` // user list response
+	DMs []DM `json:"DM,omitempty"` // user list response
 
 	// Statistics and metadata
 	UserCount    int               `json:"user_count,omitempty"`    // number of users in room
@@ -67,6 +71,13 @@ type WireMessage struct {
 	RoomCount    int               `json:"room_count,omitempty"`    // total rooms
 	ServerUptime string            `json:"server_uptime,omitempty"` // server uptime
 	Metadata     map[string]string `json:"metadata,omitempty"`      // additional data
+}
+
+type DM struct {
+	Sender string `json:"sender"` // sender username
+	Recipient string `json:"recipient"` // recipient username
+	Body     string `json:"body"`     // message text content
+	TimeStamp time.Time `json:"timestamp"` // message timestamp
 }
 
 // NewMessage creates a new WireMessage with timestamp
