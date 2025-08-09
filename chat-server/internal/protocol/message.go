@@ -16,7 +16,7 @@ const (
 	TypeAction  = "action" // /me style messages
 
 	// Direct messaging
-	TypeDM = "dm"
+	TypeDM     = "dm"
 	TypeListDM = "list_dm" // request
 	TypeDMList = "dm_list" // response
 	TypeSendDM = "send_dm"
@@ -63,9 +63,9 @@ type WireMessage struct {
 	Message string `json:"message,omitempty"` // system/error message
 
 	// List responses
-	Rooms []string `json:"rooms,omitempty"` // room list response
-	Users []string `json:"users,omitempty"` // user list response
-	DMs []chatstore.DM `json:"DM,omitempty"` // user list response
+	Rooms []string       `json:"rooms,omitempty"` // room list response
+	Users []string       `json:"users,omitempty"` // user list response
+	DMs   []chatstore.DM `json:"DM,omitempty"`    // user list response
 
 	// Statistics and metadata
 	UserCount    int               `json:"user_count,omitempty"`    // number of users in room
@@ -74,7 +74,6 @@ type WireMessage struct {
 	ServerUptime string            `json:"server_uptime,omitempty"` // server uptime
 	Metadata     map[string]string `json:"metadata,omitempty"`      // additional data
 }
-
 
 // NewMessage creates a new WireMessage with timestamp
 func NewMessage(msgType string) *WireMessage {

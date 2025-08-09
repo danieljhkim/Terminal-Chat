@@ -9,7 +9,7 @@ import (
 
 var (
 	// ANSI escape sequence pattern (CSI + OSC)
-	ansiPattern = regexp.MustCompile(`\x1b(?:\[[0-9;]*[a-zA-Z]|\][0-9;]*(?:\\\|[a-zA-Z0-9=:])*\x07|[\(\)].|[\[\]#;?].*?(?:\x1b\\|\x07))`)
+	ansiPattern      = regexp.MustCompile(`\x1b(?:\[[0-9;]*[a-zA-Z]|\][0-9;]*(?:\\\|[a-zA-Z0-9=:])*\x07|[\(\)].|[\[\]#;?].*?(?:\x1b\\|\x07))`)
 	maxMessageLength = 2000
 )
 

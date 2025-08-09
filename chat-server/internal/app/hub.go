@@ -25,7 +25,6 @@ type Hub struct {
 	log *slog.Logger
 }
 
-
 func NewHub(log *slog.Logger) *Hub {
 	return &Hub{
 		Rooms:      make(map[string]*Room),
@@ -173,8 +172,8 @@ func (h *Hub) handleListDM(c *Client, msg protocol.WireMessage) {
 	dms := store.GetMessages(msg.Username)
 
 	resp := protocol.WireMessage{
-		Type:  protocol.TypeDMList,
-		DMs: dms,
+		Type: protocol.TypeDMList,
+		DMs:  dms,
 	}
 	c.Send(resp)
 }

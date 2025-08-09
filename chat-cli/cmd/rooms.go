@@ -19,7 +19,7 @@ Available subcommands:
 	Example: `  chat-cli rooms list
   chat-cli rooms join general`,
 	Run: func(cmd *cobra.Command, args []string) {
-		
+
 	},
 }
 
