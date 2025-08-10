@@ -17,6 +17,8 @@ A simple command-line chat application built with Go, consisting of a chat serve
 - `chat-cli -h`:	Show help information
 - `chat-cli rooms list`:	List all available rooms
 - `chat-cli rooms join <room>`:	Join or create a specific room
+- `chat-cli dm send <username> <message>`:	send a direct message to a user
+- `chat-cli dm list`: list all direct messages
 
 ## Requirements
 - Computer with a terminal
@@ -61,11 +63,9 @@ chat-cli rooms join room_name
 ```
 
 ## TODO's
-- [ ] Add support for direct messages
 - [ ] Implement user authentication & TLS
 - [ ] Implement friend system
 - [ ] Implement rate limiting
-- [ ] Add input sanitation to prevent terminal injection attacks
 
 
 ## Acknowledgments
